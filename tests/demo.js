@@ -16,7 +16,7 @@
 
 import Logs from '../index.js';
 
-const LOG_COUNT = process.argv.slice(2) || 1_000_000; 
+const LOG_COUNT = parseInt(process.argv.slice(2)) || 1_000_000; 
 
 const clearMemory = () => {
     if (global.gc) {
@@ -27,8 +27,6 @@ const clearMemory = () => {
 };
 
 const run = async () => {
-
-    console.log(LOG_COUNT)
     const myLogger = new Logs({
         filename: 'silo_demo_log',
         level: 30,
@@ -41,7 +39,7 @@ const run = async () => {
 
     try {
         clearMemory()
-        console.log('clearing memory')
+        console.log('🧹 GC Clearing Memory')
         console.log(`🚀 SILO: Executing ${LOG_COUNT.toLocaleString()} logs...`);
         for (let i = 0; i < LOG_COUNT; i++) {
             await myLogger.file({ iteration: (i + 1), mode: 'minimalist' });

@@ -173,23 +173,23 @@ Silo matches Pino's throughput at **22x less memory**. Winston uses over 100x mo
 
 ### Scale Test: Where Others Drop Out
 
-| Engine   | 25M Logs                      | 100M Logs            | 1B Logs  |
-| -------- | ----------------------------- | -------------------- | -------- |
-| **Silo** | ✅ 122 MB                     | ✅ 15.58 MB          | ✅ 67 MB |
-| Pino     | ❌ 11,063 MB — heap exhausted | ❌                   | ❌       |
-| Winston  | ⚠️ 111 MB / 51K LPS           | ❌ estimated 60+ min | ❌       |
+| Engine   | 25M Logs                      | 100M Logs            | 1B Logs      |
+| -------- | ----------------------------- | -------------------- | ------------ |
+| **Silo** | ✅ 91.16 MB                   | ✅ 115.96 MB         | ✅ 125.53 MB |
+| Pino     | ❌ 11,063 MB — heap exhausted | ❌                   | ❌           |
+| Winston  | ⚠️ 111 MB / 51K LPS           | ❌ estimated 60+ min | ❌           |
 
 ### 1 Billion Log Run
 
 ```
 Total logs written  : 1,000,000,000
-File rotations      : 254 (automatic, zero logs dropped)
-Throughput          : 1,116,740 LPS sustained
-Memory overhead     : 67 MB
+File rotations      : 255 (automatic, zero logs dropped)
+Throughput          : 1,084,801 LPS sustained
+Memory overhead     : 125.53 MB
 CPU usage           : 1.61%
 ```
 
-Pino and Winston cannot complete a 25 million log run without exhausting available heap. Silo ran 1 billion logs — 40x further — with 67MB of memory.
+Pino and Winston cannot complete a 25 million log run without exhausting available heap. Silo ran 1 billion logs — 40x further — with 126MB of memory.
 
 ### Sustained Load Memory Stability (60 seconds)
 
@@ -205,8 +205,12 @@ Memory slope        : 75.29 MB/min (oscillating, not accumulating)
 ## Run The Tests Yourself
 
 ```bash
-# Fair benchmark — Silo vs Pino vs Winston
+# Benchmark — Silo (time, lps, cpu, mem)
+# Default: 1,000,000 Logs Created
 npm run benchmark
+
+# Custom Benchmark Logs Creation
+npm run benchmark -- 500000
 
 # Sustained memory stability test (60 seconds)
 npm run memory-test
