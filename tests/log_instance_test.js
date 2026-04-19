@@ -15,14 +15,22 @@
  */
 
 
-import Logs from '../index.js';
+import Logs,{ configuration } from '../index.js';
 import { execSync } from 'child_process';
 
-const args = process.argv.slice(2)
-const totalLogInstances = parseInt(args[0]) || 30
-const logsPerInstance = parseInt(args[1]) || 10_000
+configuration({ setDir: "test_logs" })
 
-async function runMegaStressTest(targetInstances, loggingEachInstance) {
+const clearMemory = () => {
+    if (global.gc) {
+        global.gc();
+        global.gc(); //  Just making sure
+    } else {
+        console.warn("Warming: GC not exposed. Run with --expose-gc for consistent results.");
+    }
+};
+
+export const instance_stress = async (targetInstances = 30, loggingEachInstance = 10_000) => {
+    clearMemory()
     let maxLoopLag = 0;
     const startLagMonitor = () => {
         let lastTime = Date.now();
@@ -79,7 +87,7 @@ async function runMegaStressTest(targetInstances, loggingEachInstance) {
     // We send all logs as fast as the CPU allows
     await Promise.all(instances.map(async (logger) => {
         for (let j = 0; j < logsPerInstance; j++) {
-            await logger.file({ msg: `Stress test log ${j}`, val: j * 32 });
+            await logger.file({ msg: `Stress test log ${j}`, val: (j + 1)});
         }
     }));
 
@@ -88,7 +96,7 @@ async function runMegaStressTest(targetInstances, loggingEachInstance) {
     await Promise.all(instances.map(inst => inst.flush()));
     stopLag(); // Stop monitoring once queues are flushed
 
-    if (global.gc) { global.gc(); global.gc(); }
+    clearMemory()
 
     
     const memGrowthMB = (process.memoryUsage().heapUsed - initialMem) / 1024 / 1024;
@@ -108,5 +116,3 @@ async function runMegaStressTest(targetInstances, loggingEachInstance) {
     console.log(`📊 Density:                ${Math.floor(totalLogsCount / memGrowthMB).toLocaleString()} Logs per 1MB RAM`);
     console.log(`========================================================================`);
 }
-
-runMegaStressTest(totalLogInstances, logsPerInstance);

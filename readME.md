@@ -200,32 +200,57 @@ Memory behavior     : Stable — normal GC oscillation under sustained load
 Memory slope        : 75.29 MB/min (oscillating, not accumulating)
 ```
 
----
-
 ## Run The Tests Yourself
 
-```bash
-# Benchmark — Silo (time, lps, cpu, mem)
-# Default: 1,000,000 Logs Created
-npm run benchmark
+> **Note:** Always run test files with `node --expose-gc your_file.js` for consistent memory readings.
+> For large instance stress tests, add `--max-old-space-size=12288` to increase available heap. - (12GB shown)
 
-# Custom Benchmark Logs Creation
-npm run benchmark -- 500000
-
-# Sustained memory stability test (60 seconds)
-npm run memory-test
-
-# Multi-instance stress test
-# Default: 30 instances, 10,000 logs each
-npm run instance-stress
-
-# Custom instance count and logs per instance
-npm run instance-stress -- 500 20000
+```javascript
+import { benchmark } from "@flowrdesk/silo/tests";
+// Benchmark — Silo (time, lps, cpu, mem)
+// Default: 1,000,000 Logs Created
+benchmark();
 ```
 
-> Run benchmarks with `node --expose-gc` for consistent memory readings. The npm scripts include this flag automatically.
+```javascript
+import { benchmark } from "@flowrdesk/silo/tests";
+// Custom Benchmark Logs Creation
+// Warning: 1B log run takes approximately 15-28 minutes
+benchmark(1_000_000_000);
+```
 
----
+```javascript
+import { battleRoyale } from "@flowrdesk/silo/tests";
+// Silo vs Pino vs Winston — default 1,000,000 logs / 5 times provides avg
+// Requires: npm install pino winston
+battleRoyale();
+```
+
+```javascript
+import { battleRoyale } from "@flowrdesk/silo/tests";
+// Silo vs Pino vs Winston — custom entry log amount / 5 times provides avg
+// Requires: npm install pino winston
+battleRoyale(10_000_000);
+```
+
+```javascript
+import { memory_test } from "@flowrdesk/silo/tests";
+// Sustained memory stability test (60 seconds)
+memory_test();
+```
+
+```javascript
+import { instance_stress } from "@flowrdesk/silo/tests";
+// Multi-instance stress test
+// Default: 30 instances, 10,000 logs each
+instance_stress();
+```
+
+```javascript
+import { instance_stress } from "@flowrdesk/silo/tests";
+// Custom instance count and logs per instance
+instance_stress(500, 20000);
+```
 
 ## Multi-Instance Usage
 

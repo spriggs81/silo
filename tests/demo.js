@@ -14,48 +14,63 @@
  * limitations under the License.
  */
 
-import Logs from '../index.js';
+import Logs, { configuration } from '../index.js';
 
-const LOG_COUNT = parseInt(process.argv.slice(2)) || 1_000_000; 
 
-const clearMemory = () => {
-    if (global.gc) {
-        global.gc();
-    } else {
-        console.warn("Warming: GC not exposed. Run with --expose-gc for consistent results.");
-    }
-};
 
-const run = async () => {
+export const benchmark = async (LOG_COUNT = 1_000_000) => {
+    const callOutAt = Math.max(Math.floor(LOG_COUNT / 10), 1)
+    configuration({ setDir: "test_logs" }) 
+    const clearMemory = () => {
+        if (global.gc) {
+            global.gc();
+        } else {
+            console.warn("Warming: GC not exposed. Run with --expose-gc for consistent results.");
+        }
+    };
     const myLogger = new Logs({
         filename: 'silo_demo_log',
         level: 30,
-        benchmark: true
+        // benchmark: true  //  ***** if true removes metadata *****
     });
 
     const startUsage = process.cpuUsage();
     const startMem = process.memoryUsage().heapUsed;
     const startTime = process.hrtime.bigint();
 
+    let timeInSecs = 0;
+    let endMem = 0;
+    let endUsage = { user: 0, system: 0 };
+
     try {
-        clearMemory()
         console.log('🧹 GC Clearing Memory')
+        clearMemory()
         console.log(`🚀 SILO: Executing ${LOG_COUNT.toLocaleString()} logs...`);
+        let peakMem = process.memoryUsage().heapUsed
+        const checkAt = Math.max(1000, Math.floor(LOG_COUNT / 100))
+
         for (let i = 0; i < LOG_COUNT; i++) {
-            await myLogger.file({ iteration: (i + 1), mode: 'minimalist' });
+            await myLogger.file({ iteration: (i + 1), mode: 'minimalist', val: 0.123456789 });
+            if(i % checkAt === 0){
+                const currentMem = process.memoryUsage().heapUsed
+                if(currentMem > peakMem) peakMem = currentMem
+            }
+            if((i + 1) % callOutAt === 0){
+                process.stdout.write(`\r Logs Proecssed: ${(i + 1).toLocaleString('en-US')}`)
+            }
         }
         await myLogger.flush();
 
         const endTime = process.hrtime.bigint();
-        const endMem = process.memoryUsage().heapUsed;
-        const timeInSecs = Number(endTime - startTime) / 1e9;
-        const endUsage = process.cpuUsage(startUsage);
+        endMem = process.memoryUsage().heapUsed;
+        timeInSecs = Number(endTime - startTime) / 1e9;
+        endUsage = process.cpuUsage(startUsage);
 
-        console.log(`✅ SILO PASSED`);
+        console.log(`\n✅ SILO PASSED`);
         console.table({
             time: timeInSecs.toFixed(4),
             lps: Math.round(LOG_COUNT / timeInSecs).toLocaleString(),
-            cpu: (((endUsage.user + endUsage.system) / (timeInSecs * 1000000))).toFixed(2) + '%',
+            cpu: (((endUsage.user + endUsage.system) / (timeInSecs * 1000000)) * 100).toFixed(0) + '%',
             mem: ((endMem - startMem) / 1024 / 1024).toFixed(2) + ' MB'
         });
     } catch (err) {
@@ -69,5 +84,3 @@ const run = async () => {
         console.error(err);
     }
 };
-
-run();

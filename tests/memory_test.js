@@ -18,8 +18,10 @@
 //  SILO — Sustained Load Memory Stability Test (Backpressure Enabled)
 // ============================================================
 
-import Logs from '../index.js';
+import Logs,{ configuration } from '../index.js';
 import { performance } from 'perf_hooks';
+
+configuration({ setDir: "test_logs" })
 
 const DURATION_MS = 60_000;
 const SAMPLE_INTERVAL_MS = 2_000;
@@ -27,15 +29,25 @@ const LOG_MSG = { msg: "Sustained load test entry", val: 0.123456789 };
 
 function mb(bytes) { return (bytes / 1024 / 1024).toFixed(2); }
 
-async function runSustainedTest() {
+export const memory_test = async() => {
+    const clearMemory = () => {
+        if (global.gc) {
+            global.gc();
+            global.gc(); //  Just making sure
+        } else {
+            console.warn("Warming: GC not exposed. Run with --expose-gc for consistent results.");
+        }
+    };
+    console.log('🧹 GC Clearing Memory')
+    clearMemory()
+
     console.log(`\n🔬  SILO — Sustained Load Memory Stability Test (Backpressure Enabled)`);
     console.log(`    Duration:        ${DURATION_MS / 1000}s`);
     console.log(`    Sample interval: ${SAMPLE_INTERVAL_MS / 1000}s`);
     console.log(`────────────────────────────────────────────────────`);
     console.log(`    Time(s) | Heap Used | Delta from Start | LPS (interval)`);
     console.log(`────────────────────────────────────────────────────`);
-
-    if (global.gc) { global.gc(); global.gc(); }
+    
 
     const logger = new Logs({ filename: 'silo_memory_test', toFile: true, toTerminal: false });
 
@@ -110,5 +122,3 @@ async function runSustainedTest() {
     console.log(`    Verdict            : ${trending}`);
     console.log(`\n────────────────────────────────────────────────────\n`);
 }
-
-runSustainedTest().catch(console.error);

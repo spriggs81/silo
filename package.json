@@ -1,6 +1,6 @@
 {
   "name": "@flowrdesk/silo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The core high-performance, zero-dependency logging engine behind the Flowrdesk Silo series. Built for massive scale and backpressure stability.",
   "main": "index.js",
   "type": "module",
@@ -8,6 +8,10 @@
     "instance-stress": "node --expose-gc --max-old-space-size=12288 ./tests/log_instance_test.js",
     "memory-test": "node --expose-gc ./tests/memory_test.js",
     "benchmark": "node --expose-gc ./tests/demo.js"
+  },
+  "exports": {
+    ".":"./index.js",
+    "./tests": "./tests/index.js"
   },
   "keywords": [
     "flowrdesk",
@@ -31,6 +35,12 @@
   "publishConfig": {
     "access": "public"
   },
+  "funding": [
+    {
+      "type": "patreon",
+      "url": "https://buymeacoffee.com/flowrdesk"
+    }
+  ],
   "author": "John Spriggs <hello@flowrdesk.com> (Flowrdesk LLC)",
   "license": "Apache-2.0"
 }
