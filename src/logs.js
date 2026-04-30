@@ -274,6 +274,8 @@ export default class Logs {
         this.streamFilename = this.filename + '_' + fileDate + '.log'
         const filePath = path.join(_config.baseDir, this.streamFilename)
 
+        if(this.isDraining) this.isDraining = false
+
         this.writeStream = createWriteStream(filePath, {
             highWaterMark: this.maxBufferSizeByKB,
             flags: 'a'
@@ -321,15 +323,17 @@ export default class Logs {
     }
 
     processFileQue = () => {
-        if(this.fileQueue.length === 0 && !this.fileProecssing) {
+        if(this.fileQueue.length === 0 && !this.fileProcessing) {
             if(this.resolveFlush) this.flush()
             return
         }
-        if(this.isDraining || this.isIndexing || !this.doesDirecttoryExist || this.endingWriteStream) return
+
         if(!this.writeStream) {
             this.startWriteStream()
             return
         }
+
+        if(this.isDraining || this.isIndexing || !this.doesDirecttoryExist || this.endingWriteStream) return
 
         let str = ''
         const targetSize = this.maxBufferSizeByKB * .80
@@ -367,7 +371,7 @@ export default class Logs {
         if(this.fileQueue.length > 0 && !this.isDraining && !this.isIndexing) {
             setImmediate(() => this.processFileQue())
         } else if(this.fileQueue.length === 0) {
-            this.fileProecssing = false
+            this.fileProcessing = false
             // Release any remaining waiters on full drain
             this._releaseWaiters()
             if(this.resolveFlush) {
@@ -447,8 +451,8 @@ export default class Logs {
                 this.resolveFlush = null
             }
         } else {
-            if(!this.fileProecssing) {
-                this.fileProecssing = true
+            if(!this.fileProcessing) {
+                this.fileProcessing = true
                 setImmediate(() => this.processFileQue())
             }
         }
