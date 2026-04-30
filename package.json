@@ -1,6 +1,6 @@
 {
   "name": "@flowrdesk/silo",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "The core high-performance, zero-dependency logging engine behind the Flowrdesk Silo series. Built for massive scale and backpressure stability.",
   "main": "index.js",
   "type": "module",
