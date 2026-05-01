@@ -88,33 +88,35 @@ export const colors = {
 
 // a function that checks a variable and returns it for a string
 export const checkVariable = (data) => {
+    const checked = []
     if(typeof(data) === 'string'){
-        const checked = '"' + data + '"'
-        return checked
+        checked.push(`"${data}"`)
+        return checked.join('')
     } else if(typeof(data) === 'number' || typeof(data) === 'boolean' || data === null || data === undefined){
-        return data
+        checked.push(data)
+        return checked.join('')
     } else if(isObject(data)){
-        let checked = '{'
+        checked.push('{')
         const keys = Object.keys(data)
         for(let i = 0; i < keys.length; i++){
-            checked += '"' + keys[i] + '":'
-            checked += checkVariable(data[keys[i]])
+            checked.push(`"${keys[i]}":`)
+            checked.push(checkVariable(data[keys[i]]))
             if(i + 1 !== keys.length){
-                checked += ','
+                checked.push(',')
             }
         }
-        checked += '}'
-        return checked
+        checked.push('}')
+        return checked.join('')
     } else if(Array.isArray(data)){
-        let checked = '['
+        checked.push('[')
         for(let i = 0; i < data.length; i++){
-            checked += checkVariable(data[i])
+            checked.push(checkVariable(data[i]))
             if(i + 1 !== data.length){
-                checked += ','
+                checked.push(',')
             }
         }
-        checked += ']'
-        return checked
+        checked.push(']')
+        return checked.join('')
     } else {
         console.error(`The function used to check variables was unable to check a variable and didn't pass the data in the logs`)
     }
@@ -122,47 +124,48 @@ export const checkVariable = (data) => {
 
 // a function that verifies log format and returns a string
 export const verifyAndFormatLog = (data) => {
-    let str = '"message":'
+    const strArray = []
+    strArray.push('"message":')
     if(data instanceof Error){
         if(!data.message && !data.stack && !data.code){
-            str += '"Received an Error, but no data was provided in this error object!"'
-            return str
+            strArray('"Received an Error, but no data was provided in this error object!"')
+            return strArray.join('')
         }
-        str += '{'
-        if(data.message) str += '"error_message":' + checkVariable(data.message) + ','
-        if(data.stack) str += '"error_stack":' + checkVariable(data.stack) + ','
-        if(data.code) str += '"error_code":' + checkVariable(data.code) 
-        str += '}'
-        return str
+        strArray.push('{')
+        if(data.message) strArray.push`"error_message":${checkVariable(data.message)},`
+        if(data.stack) strArray.push(`error_stack":${checkVariable(data.stack)},`)
+        if(data.code) strArray.push(`"error_code":${checkVariable(data.code)}`) 
+        strArray.push('}')
+        return strArray.join('')
     } else if(isObject(data)){
-        str += '{'
+        strArray.push('{')
         const keys = Object.keys(data)
         for(let i = 0; i < keys.length; i++){
-            str += '"' + keys[i] + '":'
-            str += checkVariable(data[keys[i]])
+            strArray.push(`"${keys[i]}":`)
+            strArray.push(checkVariable(data[keys[i]]))
             if(i + 1 !== keys.length){
-                str += ','
+                strArray.push(',')
             }
         }
-        str += '}'
-        return str
+        strArray.push('}')
+        return strArray.join('')
     } else if(Array.isArray(data)){
-        str += '['
+        strArray.push('[')
         for(let i = 0; i < data.length; i++){
-            str += checkVariable(data[i])
+            strArray.push(checkVariable(data[i]))
             if(i + 1 !== data.length){
-                str += ','
+                strArray.push(',')
             }
         }
-        str += ']'
-        return str
+        strArray.push(']')
+        return strArray.join('')
     } else if(typeof(data) === 'string' || typeof(data) === 'number' || typeof(data) === 'boolean' || data === null || data === undefined){
-        str += checkVariable(data)
-        return str
+        strArray.push(checkVariable(data))
+        return strArray.join('')
     } else {
-        str += '[Error: Unable to format log as the type of log is not supported please check terminal]'
+        strArray.push('[Error: Unable to format log as the type of log is not supported please check terminal]')
         console.error(`[Error Formating Log]: type: ${typeof(data)}\nLog Received: `, data)
-        return str
+        return strArray.join('')
     }
     
 }
@@ -192,7 +195,7 @@ export const indexFile = async (filename) => {
 
     // get the paths ready to index the file
     const currentFilePath = path.join(_config.baseDir, filename)
-    const newFilePath = path.join(_config.baseDir, checkFilename + '_' + String(count).padStart(3, '0') + '.log')
+    const newFilePath = path.join(_config.baseDir, `${checkFilename}_${String(count).padStart(3, '0')}.log`)
 
     // try to rename file and handle any errors
     try {
