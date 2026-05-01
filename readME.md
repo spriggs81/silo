@@ -11,7 +11,7 @@ Part of the [Flowrdesk Silo Series](https://flowrdesk.com).
 
 ## Why Silo
 
-Most Node.js loggers make you choose between speed and stability. Pino is fast but consumes memory aggressively at scale. Winston is stable but too slow for high-throughput environments. Silo doesn't make that tradeoff.
+Most Node.js loggers make you choose between speed and stability. Silo doesn't make that tradeoff.
 
 **Zero dependencies.** No `node_modules` risk, no supply chain vulnerabilities, no version conflicts. The entire engine is built on Node.js core APIs only.
 
@@ -44,8 +44,8 @@ const logger = new Logs({
   toTerminal: false,
 });
 
-logger.logg({ event: "server_start", port: 3000 });
-logger.logg({
+await logger.file({ event: "server_start", port: 3000 });
+await logger.file({
   event: "request",
   method: "GET",
   path: "/api/users",
@@ -72,9 +72,9 @@ const logger = new Logs({
   txtColor, // Optional. Terminal text color. See color options below.
   bgColor, // Optional. Terminal background color. See color options below.
   benchmark, // Optional. Boolean. Strips metadata for raw throughput testing. Default: false
-  toFile, // Optional. Boolean. Write logs to file. Default: true
-  toTerminal, // Optional. Boolean. Write logs to terminal. Default: true
-  terminalRaw, // Optional. Boolean. Use raw terminal output (no ANSI formatting). Default: false
+  toFile, // Optional. Boolean. Write logs to file when using the 'logg' function. Default: true
+  toTerminal, // Optional. Boolean. Write logs to terminal when using the 'logg' function. Default: true
+  terminalRaw, // Optional. Boolean. Use raw terminal output (no ANSI formatting) when using the 'logg' function. Default: false
   maxQueueDepth, // Optional. Max items in write queue before backpressure activates. Default: 50_000
 });
 ```
@@ -118,7 +118,7 @@ await logger.file({ event: "batch_process", item: "SKU-9981" });
 
 ### `logger.terminal(data)`
 
-Write directly to terminal only, bypassing file output.
+Write directly to terminal only, bypassing file output. This is a human readable output that uses ANSI color formatting
 
 ### `logger.terminal_raw(data)`
 
@@ -135,18 +135,6 @@ process.on("SIGTERM", async () => {
 });
 ```
 
-### `await logger.waitForQueueSpace()`
-
-Parks the caller until the internal queue drains below 50% capacity. Available for power users running high-volume batch scenarios who want explicit backpressure control. Regular usage does not require this — the engine self-regulates.
-
-```js
-// High-volume batch scenario
-for (const record of massiveDataset) {
-  await logger.waitForQueueSpace();
-  logger.file(record);
-}
-```
-
 ### `await logger.terminalFlush()`
 
 Flushes the terminal output queue.
@@ -157,53 +145,18 @@ Flushes the raw terminal output queue.
 
 ---
 
-## Benchmark Results
+## Benchmark and Results
 
 All benchmarks run on Windows, Node.js with `--expose-gc`, GC forced before each measurement. Tests are included in the package — run them yourself to verify on your own hardware.
 
-### Fair Fight: 1,000,000 Logs (File Output)
-
-| Engine   | LPS           | Memory       |
-| -------- | ------------- | ------------ |
-| **Silo** | **1,535,373** | **13.58 MB** |
-| Pino     | 1,559,696     | 298.23 MB    |
-| Winston  | 117,211       | 1,403.01 MB  |
-
-Silo matches Pino's throughput at **22x less memory**. Winston uses over 100x more memory at 13x slower speed.
-
-### Scale Test: Where Others Drop Out
-
-| Engine   | 25M Logs                      | 100M Logs            | 1B Logs      |
-| -------- | ----------------------------- | -------------------- | ------------ |
-| **Silo** | ✅ 91.16 MB                   | ✅ 115.96 MB         | ✅ 125.53 MB |
-| Pino     | ❌ 11,063 MB — heap exhausted | ❌                   | ❌           |
-| Winston  | ⚠️ 111 MB / 51K LPS           | ❌ estimated 60+ min | ❌           |
-
-### 1 Billion Log Run
-
-```
-Total logs written  : 1,000,000,000
-File rotations      : 255 (automatic, zero logs dropped)
-Throughput          : 1,084,801 LPS sustained
-Memory overhead     : 125.53 MB
-CPU usage           : 1.61%
-```
-
-Pino and Winston cannot complete a 25 million log run without exhausting available heap. Silo ran 1 billion logs — 40x further — with 126MB of memory.
-
-### Sustained Load Memory Stability (60 seconds)
-
-```
-Total logs written  : 34,557,603
-Avg LPS             : 575,557
-Memory behavior     : Stable — normal GC oscillation under sustained load
-Memory slope        : 75.29 MB/min (oscillating, not accumulating)
-```
-
-## Run The Tests Yourself
+### Run The Tests Yourself
 
 > **Note:** Always run test files with `node --expose-gc your_file.js` for consistent memory readings.
 > For large instance stress tests, add `--max-old-space-size=12288` to increase available heap. - (12GB shown)
+
+### Core Throughput Benchmark Test
+
+The `Benchmark Test`:
 
 ```javascript
 import { benchmark } from "@flowrdesk/silo/tests";
@@ -215,29 +168,131 @@ benchmark();
 ```javascript
 import { benchmark } from "@flowrdesk/silo/tests";
 // Custom Benchmark Logs Creation
-// Warning: 1B log run takes approximately 15-28 minutes
+// Warning: 1B log run takes approximately up to 40 minutes and use up to 140GB of space
 benchmark(1_000_000_000);
 ```
 
-```javascript
-import { battleRoyale } from "@flowrdesk/silo/tests";
-// Silo vs Pino vs Winston — default 1,000,000 logs / 5 times provides avg
-// Requires: npm install pino winston
-battleRoyale();
-```
+`Why use this test?`<br>
+This test measures the raw, peak velocity of the Silo engine under a specific load (Default: 1,000,000 logs). It is designed to provide a high-resolution snapshot of how the engine handles massive bursts of data, allowing you to quantify the immediate impact of logging on your system's resources.
 
-```javascript
-import { battleRoyale } from "@flowrdesk/silo/tests";
-// Silo vs Pino vs Winston — custom entry log amount / 5 times provides avg
-// Requires: npm install pino winston
-battleRoyale(10_000_000);
-```
+Use this test to:
+
+- **Measure Peak LPS:** Determine the maximum "Logs Per Second" your current hardware and Node.js environment can support.
+
+- **Analyze CPU Intensity:** Understand the "CPU tax" associated with high-speed logging. Because Silo prioritizes flushing the queue quickly, it uses a short burst of CPU power to minimize the total time your application is held up by I/O.
+
+- **Monitor Memory Ceiling:** Identify the peak heap usage required to process a specific volume of logs, ensuring it fits within your container or server limits.
+
+- **Validate Optimizations:** Confirm the performance gains from Silo's internal refactors—such as the transition to template literals and optimized array construction—which reduce total execution time.
+
+Understanding the Output
+
+- **Time:** The total seconds taken to clear the queue from the first log to the final disk write.
+
+- **LPS:** The average throughput velocity maintained during the run.
+
+- **CPU:** The peak processing load. A higher percentage here indicates Silo is "sprinting" to finish the task faster.
+
+- **Mem:** The highest memory delta reached, demonstrating Silo's adaptive batching in action.
+
+#### Results of benchmark
+
+| Number of Log    | Completion Time  | LPS     | Peak CPU | Memory    |
+| ---------------- | ---------------- | ------- | -------- | --------- |
+| **100 Thousand** | 0.32 seconds     | 305,514 | 191%     | 87.63 MB  |
+| **1 Million**    | 2.30 seconds     | 435,491 | 173%     | 165.17 MB |
+| **5 Million**    | 11.79 seconds    | 424,069 | 175%     | 137.74 MB |
+| **10 Million**   | 22.74 seconds    | 439,780 | 168%     | 250.63 MB |
+| **25 Million**   | 55.79 seconds    | 448,097 | 168%     | 254.98 MB |
+| **50 Million**   | 111.33 seconds   | 449,108 | 168%     | 162.59 MB |
+| **100 Million**  | 213.78 seconds   | 467,763 | 171%     | 253.79 MB |
+| **1 Billion**    | 2,394.93 seconds | 417,550 | 173%     | 219.01 MB |
+
+<hr>
+
+### Sustained Load Memory Stability Test (60 seconds)
+
+The `Memory Test`:
 
 ```javascript
 import { memory_test } from "@flowrdesk/silo/tests";
 // Sustained memory stability test (60 seconds)
 memory_test();
 ```
+
+`Why use this test?`<br>
+Standard benchmarks often measure "sprints"—short bursts of speed that don't reveal how a logger behaves over time. This test is a marathon designed to simulate high-traffic production environments where logging is constant and heavy.
+
+Use this test to:
+
+- **Verify Backpressure:** Ensure that the internal batching logic correctly signals the system to "breathe," allowing the Node.js Garbage Collector to reclaim memory during heavy I/O.
+
+- **Identify Memory Leaks:** Confirm that the engine maintains a stable "sawtooth" memory profile rather than a linear upward climb, which leads to fatal Out-Of-Memory (OOM) crashes.
+
+- **Benchmark Long-Term Velocity:** Measure if the Logs Per Second (LPS) remains consistent or if the engine "chokes" as the heap grows over several minutes of sustained load.
+
+- **Production Simulation:** Test Silo against your specific hardware constraints to find the perfect balance between high-speed throughput and stable resource consumption.
+
+#### Results of Memory Test
+
+```
+🔬  SILO — Sustained Load Memory Stability Test (Backpressure Enabled)
+    Duration:        60s
+    Sample interval: 2s
+────────────────────────────────────────────────────
+    Time(s) | Heap Used | Delta from Start | LPS (interval)
+────────────────────────────────────────────────────
+    2.0    s |  175.43 MB |         170.66 MB | 461,612
+    4.0    s |  206.57 MB |         201.80 MB | 434,819
+    6.0    s |  235.68 MB |         230.92 MB | 511,038
+    8.0    s |  248.97 MB |         244.21 MB | 507,339
+    10.1   s |  200.25 MB |         195.48 MB | 428,521
+    12.1   s |  235.94 MB |         231.17 MB | 486,364
+    14.1   s |  240.17 MB |         235.40 MB | 462,011
+    16.1   s |  138.82 MB |         134.05 MB | 433,451
+    18.1   s |  171.25 MB |         166.48 MB | 469,823
+    20.2   s |  161.85 MB |         157.08 MB | 443,941
+    22.2   s |  165.01 MB |         160.24 MB | 470,354
+    24.2   s |  186.66 MB |         181.89 MB | 474,814
+    26.2   s |  170.18 MB |         165.42 MB | 446,187
+    28.2   s |  177.55 MB |         172.78 MB | 449,809
+    30.2   s |  153.39 MB |         148.62 MB | 412,073
+    32.2   s |   88.77 MB |          84.00 MB | 400,010
+    34.2   s |  115.03 MB |         110.26 MB | 473,468
+    36.2   s |  146.50 MB |         141.73 MB | 499,741
+    38.2   s |  237.60 MB |         232.84 MB | 560,364
+    40.3   s |  265.14 MB |         260.38 MB | 488,694
+    42.3   s |  230.91 MB |         226.14 MB | 421,690
+    44.3   s |   97.57 MB |          92.80 MB | 486,974
+    46.3   s |  115.53 MB |         110.76 MB | 486,405
+    48.3   s |   98.14 MB |          93.37 MB | 462,291
+    50.3   s |  285.88 MB |         281.11 MB | 424,929
+    52.3   s |  133.11 MB |         128.35 MB | 510,092
+    54.3   s |  186.05 MB |         181.29 MB | 532,532
+    56.3   s |  203.85 MB |         199.08 MB | 499,899
+    58.3   s |  202.86 MB |         198.09 MB | 474,865
+────────────────────────────────────────────────────
+
+📊  FINAL SUMMARY
+    Total logs written : 28,150,000
+    Total time         : 60.03s
+    Avg LPS            : 468,934
+    Heap at start      : 4.77 MB
+    Heap at end        : 119.20 MB
+    Net heap delta     : 114.44 MB
+
+📈  MEMORY TREND ANALYSIS
+    Slope              : -34.53 MB/min
+    Verdict            : ✅  STABLE — memory is not growing meaningfully
+
+────────────────────────────────────────────────────
+```
+
+<hr>
+
+### Multi-Instance Stress Test
+
+The `Log Instance Stress Test`:
 
 ```javascript
 import { instance_stress } from "@flowrdesk/silo/tests";
@@ -250,6 +305,56 @@ instance_stress();
 import { instance_stress } from "@flowrdesk/silo/tests";
 // Custom instance count and logs per instance
 instance_stress(500, 20000);
+```
+
+`Why use this test?`<br>
+In modern microservices or large-scale applications, you rarely have just one logging instance. This test simulates a "High-Density" environment by spinning up 30 independent Silo instances and hammering them all at once. It’s designed to find the breaking point of the system’s I/O and event loop when multiple loggers are fighting for the same resources.
+
+Use this test to:
+
+- **Validate Concurrency:** Ensure that Silo’s zero-dependency architecture doesn't cause race conditions or file locks when dozens of instances write to the disk simultaneously.
+
+- **Measure "Event Loop Lag":** Monitor the responsiveness of your application. High-speed logging is useless if it blocks the Node.js event loop; this test tracks the maximum lag to ensure your app stays snappy even during an I/O "hammering" event.
+
+- **Calculate Resource Density:** See exactly how little RAM it takes to run multiple instances. With an average memory growth of +-0.05 MB for 30 instances, this test proves Silo is lean enough for edge computing and high-density container environments.
+
+- **Test System Limits:** Identify OS-level constraints (like the "Windows Wall" or ulimit on Linux) to help you tune your production environment for maximum stability.
+
+Key Metrics Explained:<br>
+
+- **Boot Time:** How fast 30 instances can initialize and be ready to log.
+
+- **Throughput (Combined):** The total aggregate velocity of all instances working in parallel (hitting over 618k LPS in v1.0.4).
+
+- **Event Loop Lag:** A critical health metric; lower is better. It measures the delay in the Node.js execution cycle caused by the logging load. **Note:** The lag reported here is a `"worst-case scenario" metric`; because this test intentionally hammers the event loop to find its breaking point, these numbers reflect extreme stress rather than standard, day-to-day logging behavior.
+
+- **Density:** A "fun" but meaningful stat showing how many millions of logs Silo can process per every 1MB of RAM consumed.
+
+#### The Results of Instance Stress Test:
+
+```
+========================================================================
+   SILO ENGINE MULTI-INSTANCE STRESS TEST: 30 INSTANCES
+========================================================================
+'ulimit' is not recognized as an internal or external command,
+operable program or batch file.
+ℹ️  Could not check ulimit (likely Windows). Ensure stability.
+🚀 Boot Time: 11.563ms
+🔨 Hammering 30 instances with 10000 logs each...
+⏳ Waiting for all file queues to flush to disk...
+
+========================================================================
+   FINAL STRESS REPORT: THE "WINDOWS WALL" EDITION
+========================================================================
+✅ Successful Instances:   30
+📈 Total Logs Written:     300,000
+⏱️  Execution Time:         0.485s
+🚀 Throughput:             618,556 LPS
+🧠 Mem Growth:             +-0.05 MB
+💎 Avg Mem Per Instance:   -0.002 MB
+⚡ Max Event Loop Lag:     281ms
+📊 Density:                -5,539,034 Logs per 1MB RAM
+========================================================================
 ```
 
 ## Multi-Instance Usage
@@ -333,7 +438,6 @@ Silo Free is the open-source core engine. The Flowrdesk Silo Series builds on th
 | -------------- | -------------------------------------------------- | -------------- |
 | **Silo Free**  | Core engine — what you're using now                | ✅ Available   |
 | **Silo Basic** | PII scrubbing + automated log lifecycle management | 🔜 Coming Soon |
-| **Silo Guard** | Enterprise compliance tier                         | 🔜 Coming Soon |
 
 Learn more at [flowrdesk.com](https://flowrdesk.com)
 
@@ -341,5 +445,5 @@ Learn more at [flowrdesk.com](https://flowrdesk.com)
 
 ## License
 
-Apache-2.0 — see [LICENSE](./LICENSE) for full text.  
+Apache-2.0 — see [LICENSE](./LICENSE) for full text.
 Copyright 2026 John Spriggs (Flowrdesk LLC) — see [NOTICE](./NOTICE).

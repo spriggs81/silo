@@ -175,10 +175,10 @@ export default class Logs {
                         ? `"logTime":"${timeStamp}","hostname":"${this.hostname}","pid":${this.pid},`
                         : ''
         const verifiedLog = verifyAndFormatLog(userLog)
-        let colorCode = ''
-        if(this.txtColor) colorCode += '\x1b[' + this.txtColor + 'm'
-        if(this.bgColor) colorCode += '\x1b[' + this.bgColor + 'm'
-        const fullLog = colorCode + '{' + level + metadata + verifiedLog + '}' + colors.reset
+        const colorCode = []
+        if(this.txtColor) colorCode.push(`\x1b[${this.txtColor}m`)
+        if(this.bgColor) colorCode.push(`\x1b[${this.bgColor}m`)
+        const fullLog = `${colorCode.join('')}{${level}${metadata}${verifiedLog}}${colors.reset}`
 
         this.terminalQueue.push(fullLog + '\n')
         if(!this.terminalProecssing) {
@@ -214,7 +214,7 @@ export default class Logs {
                         ? `"logTime":"${time}","hostname":"${this.hostname}","pid":${this.pid},`
                         : ''
         const verifiedLog = verifyAndFormatLog(userLog)
-        this.rawTerminalQueue.push('{' + level + metadata + verifiedLog + '}' + '\n')
+        this.rawTerminalQueue.push(`{${level}${metadata}${verifiedLog}}\n`)
         if(!this.rawTerminalProcessing) {
             this.rawTerminalProcessing = true
             setImmediate(() => {
@@ -231,21 +231,21 @@ export default class Logs {
             return
         }
 
-        let str = ''
+        const str = []
         const target = this.maxBufferSizeByKB * .75
 
         while(!this.isRawTerminalDraining && this.rawTerminalQueue.length > 0){
             const grab = this.rawTerminalQueue.length > 5000 ? 5000 : this.rawTerminalQueue.length
             const chucks = this.rawTerminalQueue.splice(0, grab)
-            str += chucks.join('')
+            str.push(chucks.join(''))
 
-            if(str.length >= target || (this.rawTerminalQueue.length === 0 && str.length > 0)) {
-                const rawTerminalBackPressure = this.rawTerminalStream.write(str)
+            if(str.join('').length >= target || (this.rawTerminalQueue.length === 0 && str.join('').length > 0)) {
+                const rawTerminalBackPressure = this.rawTerminalStream.write(str.join(''))
                 if(!rawTerminalBackPressure) {
                     this.isRawTerminalDraining = true
                     return
                 }
-                str = ''
+                str.length = 0
             }
         }
 
@@ -271,7 +271,7 @@ export default class Logs {
         if(this.writeStream || this.endingWriteStream) return
 
         const fileDate = getDate()
-        this.streamFilename = this.filename + '_' + fileDate + '.log'
+        this.streamFilename = `${this.filename}_${fileDate}.log`
         const filePath = path.join(_config.baseDir, this.streamFilename)
 
         if(this.isDraining) this.isDraining = false
@@ -308,7 +308,7 @@ export default class Logs {
                         : ''
         const verifiedLog = verifyAndFormatLog(userLog)
 
-        this.fileQueue.push('{' + level + metadata + verifiedLog + '}' + '\n')
+        this.fileQueue.push(`{${level}${metadata}${verifiedLog}}\n`)
 
         if(this.fileQueue.length >= this.maxQueueDepth){
             await this.waitForQueueSpace()
@@ -335,20 +335,20 @@ export default class Logs {
 
         if(this.isDraining || this.isIndexing || !this.doesDirecttoryExist || this.endingWriteStream) return
 
-        let str = ''
+        const str = []
         const targetSize = this.maxBufferSizeByKB * .80
 
         while(!this.isDraining && !this.isIndexing && !this.endingWriteStream && this.fileQueue.length > 0) {
             const grab = this.fileQueue.length > 5000 ? 5000 : this.fileQueue.length
             const chunks = this.fileQueue.splice(0, grab)
-            str += chunks.join('')
+            str.push(chunks.join(''))
 
-            if(str.length >= targetSize
-                || (this.cachedFileSize + str.length) >= this.maxFileSizeByMB
-                || (this.fileQueue.length === 0 && str.length > 0)) {
+            if(str.join('').length >= targetSize
+                || (this.cachedFileSize + str.join('').length) >= this.maxFileSizeByMB
+                || (this.fileQueue.length === 0 && str.join('').length > 0)) {
 
-                const noBackPressure = this.writeStream.write(str)
-                this.cachedFileSize += str.length
+                const noBackPressure = this.writeStream.write(str.join(''))
+                this.cachedFileSize += str.join('').length
 
                 if(noBackPressure === false) {
                     this.isDraining = true
@@ -358,7 +358,7 @@ export default class Logs {
                     this._indexFile(this.streamFilename)
                 }
 
-                str = ''
+                str.length = 0
             }
 
             // ── Release parked callers once queue drains to threshold ──
@@ -420,7 +420,7 @@ export default class Logs {
     _checkTheFileSize = async () => {
         if(this.checkedFileSize) return
         const fileDate = getDate()
-        const filename = this.filename + '_' + fileDate + '.log'
+        const filename = `${this.filename}_${fileDate}.log`
         const size = await checkTheFileSize(filename)
         if(size > 0) this.cachedFileSize = size
         this.checkedFileSize = true
