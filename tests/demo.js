@@ -47,18 +47,18 @@ export const benchmark = async (LOG_COUNT = 1_000_000) => {
         clearMemory()
         console.log(`🚀 SILO: Executing ${LOG_COUNT.toLocaleString()} logs...`);
         let peakMem = process.memoryUsage().heapUsed
-        const checkAt = Math.max(1000, Math.floor(LOG_COUNT / 100))
+        const memoryWatcher = setInterval(() => {
+            const currentMem = process.memoryUsage().heapUsed;
+            if (currentMem > peakMem) peakMem = currentMem;
+        }, 20);
 
         for (let i = 0; i < LOG_COUNT; i++) {
             await myLogger.file({ iteration: (i + 1), mode: 'minimalist', val: 0.123456789 });
-            if(i % checkAt === 0){
-                const currentMem = process.memoryUsage().heapUsed
-                if(currentMem > peakMem) peakMem = currentMem
-            }
             if((i + 1) % callOutAt === 0){
                 process.stdout.write(`\r Logs Proecssed: ${(i + 1).toLocaleString('en-US')}`)
             }
         }
+        clearInterval(memoryWatcher)
         await myLogger.flush();
 
         const endTime = process.hrtime.bigint();

@@ -3,3 +3,5 @@ logs/
 .git/
 .logs
 test_logs
+*.tgz
+*.mjs
