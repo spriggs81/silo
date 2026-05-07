@@ -222,24 +222,32 @@ const padded = Array.from({length: 100},(_,i) => i.toString().padStart(2,'0'))
 
 const paddedMs = Array.from({length: 1000},(_,i) => i.toString().padStart(3,'0'))
 
+let cachedDate = null
+let lastDate = -1
+
 // function that returns the date
 export const getDate = () => {
     const d = new Date()
-    return  d.getFullYear().toString() + '-' +
-            padded[d.getMonth() + 1] + '-' +
-            padded[d.getDate()]
+    const currentDate = d.getDate()
+    if(currentDate !== lastDate){
+        lastDate = currentDate
+        cachedDate = `${d.getFullYear()}-${padded[d.getMonth() + 1]}-${padded[d.getDate()]}`
+    }
+    return cachedDate
 }
+
+let lastSecond = -1
+let cachedTimestamp = null
 
 // function that returns the time
 export const getTimeStamp = () => {
     const d = new Date()
-    return  d.getFullYear().toString() + '-' +
-            padded[d.getMonth() + 1] + '-'+
-            padded[d.getDate()] + 'T'+
-            padded[d.getHours()] + ':' +
-            padded[d.getMinutes()] + ':' +
-            padded[d.getSeconds()] + '.' +
-            paddedMs[d.getMilliseconds()]
+    const s = d.getSeconds()
+    if(s !== lastSecond){
+        lastSecond = s
+        cachedTimestamp =  `${d.getFullYear()}-${padded[d.getMonth() + 1]}-${padded[d.getDate()]}T${padded[d.getHours()]}:${padded[d.getMinutes()]}:${padded[s]}`
+    }
+    return `${cachedTimestamp}.${paddedMs[d.getMilliseconds()]}`
 }
 
 // function checks for unsafe filenames

@@ -13,15 +13,36 @@ Part of the [Flowrdesk Silo Series](https://flowrdesk.com).
 
 Most Node.js loggers make you choose between speed and stability. Silo doesn't make that tradeoff.
 
-**Zero dependencies.** No `node_modules` risk, no supply chain vulnerabilities, no version conflicts. The entire engine is built on Node.js core APIs only.
+**Zero dependencies:** No `node_modules` risk, no supply chain vulnerabilities, no version conflicts. The entire engine is built on Node.js core APIs only.
 
-**Per-instance architecture.** Every `new Logs()` call is a fully independent, self-contained logging instance. Each instance manages its own queue, its own write stream, its own rotation cycle, and its own backpressure. There is no global state. Instances never interfere with each other.
+**Per-instance architecture:** Every `new Logs()` call is a fully independent, self-contained logging instance. Each instance manages its own queue, its own write stream, its own rotation cycle, and its own backpressure. There is no global state. Instances never interfere with each other.
 
-**Built-in backpressure.** Silo's engine automatically gates writes when the internal queue reaches capacity, then releases when it drains. Your application never runs out of memory from a logging spike. No configuration required — it works out of the box.
+**Built-in backpressure:** Silo's engine automatically gates writes when the internal queue reaches capacity, then releases when it drains. Your application never runs out of memory from a logging spike. No configuration required — it works out of the box.
 
-**Automatic file rotation.** Log files rotate automatically at a configurable size threshold (default 250MB). Rotated files are indexed sequentially. Your disk never fills up from runaway log growth.
+**Automatic daily file rotation:** Never lose track of time. Silo automatically archives active logs at midnight, starting every day with a fresh file. Keeping your active logs relevant and your archives organized by date. _Zero configuration required_.
 
-**Proven at scale.** The only Node.js logger publicly benchmarked at 1 billion logs with documented memory stability.
+**Automatic file rotation:** Log files rotate automatically at a configurable size threshold (default 250MB). Rotated files are indexed sequentially. _Your files never fill up from runaway log growth_.
+
+**Proven at scale:** The only Node.js logger publicly benchmarked at 1 billion logs with documented memory stability.
+
+---
+
+## 🏆 **The Billion Log Challenge**
+
+Most loggers fail or fragment under extreme, sustained volume. In our stress tests, Silo processed **1,000,000,000 logs** consecutively in a Dockerized Linux environment.
+
+- **Zero Leak Architecture:** Memory remained stable at ~102MB from log #1 to log #1,000,000,000.
+
+- **Sustained Performance:** Maintained an average of 416k+ LPS over a 40-minute continuous write cycle.
+
+- **Production Ready:** Proof that Silo can handle the most demanding enterprise workloads without exhausting system resources.
+
+| 1 Billion Log Test        | Silo version 1.0.3            | Silo version 1.0.4            |
+| ------------------------- | ----------------------------- | ----------------------------- |
+| **Time Of Completion:**   | 2,655.73 seconds (44.42 mins) | 2,402.77 seconds (40.04 mins) |
+| **Log Per Second (LPS):** | 376,544                       | 416,187                       |
+| **CPU%:**                 | 196%                          | 179%                          |
+| **Peak Memory:**          | 78.42 MB                      | 102.59 MB                     |
 
 ---
 
@@ -193,21 +214,59 @@ Understanding the Output
 
 - **CPU:** The peak processing load. A higher percentage here indicates Silo is "sprinting" to finish the task faster.
 
-- **Mem:** The highest memory delta reached, demonstrating Silo's adaptive batching in action.
+- **Mem:** The highest RSS (Resident Set Size) memory delta reached, measuring total process memory rather than heap alone, demonstrating Silo's adaptive batching in action.
 
-#### Results of benchmark
+#### Results of benchmark (by version)
 
-| Number of Log    | Completion Time  | LPS     | Peak CPU | Memory    |
-| ---------------- | ---------------- | ------- | -------- | --------- |
-| **100 Thousand** | 0.32 seconds     | 305,514 | 191%     | 87.63 MB  |
-| **1 Million**    | 2.30 seconds     | 435,491 | 173%     | 165.17 MB |
-| **5 Million**    | 11.79 seconds    | 424,069 | 175%     | 137.74 MB |
-| **10 Million**   | 22.74 seconds    | 439,780 | 168%     | 250.63 MB |
-| **25 Million**   | 55.79 seconds    | 448,097 | 168%     | 254.98 MB |
-| **50 Million**   | 111.33 seconds   | 449,108 | 168%     | 162.59 MB |
-| **100 Million**  | 213.78 seconds   | 467,763 | 171%     | 253.79 MB |
-| **1 Billion**    | 2,394.93 seconds | 417,550 | 173%     | 219.01 MB |
+_Note: Initial benchmarks were performed on Windows environments. All current and future testing is conducted within Docker containers (Linux) to better simulate real-world production server performance._
 
+<details>
+<summary>1 Million Log Test Run</summary>
+
+|                           | Silo version 1.0.3 | Silo version 1.0.4 |
+| ------------------------- | ------------------ | ------------------ |
+| **Time Of Completion:**   | 3.15 seconds       | 2.46 seconds       |
+| **Log Per Second (LPS):** | 317,505            | 406,084            |
+| **CPU%:**                 | 200%               | 184%               |
+| **Peak Memory:**          | 39.41 MB           | 96.96 MB           |
+
+</details>
+<br>
+<details>
+<summary>5 Million Log Test Run</summary>
+
+|                           | Silo version 1.0.3 | Silo version 1.0.4 |
+| ------------------------- | ------------------ | ------------------ |
+| **Time Of Completion:**   | 11.87 seconds      | 10.84 seconds      |
+| **Log Per Second (LPS):** | 421,255            | 461,105            |
+| **CPU%:**                 | 192%               | 178%               |
+| **Peak Memory:**          | 123.10 MB          | 44.83 MB           |
+
+</details>
+<br>
+<details>
+<summary>10 Million Log Test Run</summary>
+
+|                           | Silo version 1.0.3 | Silo version 1.0.4 |
+| ------------------------- | ------------------ | ------------------ |
+| **Time Of Completion:**   | 26.39 seconds      | 19.80 seconds      |
+| **Log Per Second (LPS):** | 378,924            | 505,004            |
+| **CPU%:**                 | 187%               | 181%               |
+| **Peak Memory:**          | 156.88 MB          | 95.22 MB           |
+
+</details>
+<br>
+<details>
+<summary>100 Million Log Test Run</summary>
+
+|                           | Silo version 1.0.3         | Silo version 1.0.4         |
+| ------------------------- | -------------------------- | -------------------------- |
+| **Time Of Completion:**   | 246.60 seconds (4.11 mins) | 212.71 seconds (3.55 mins) |
+| **Log Per Second (LPS):** | 405,514                    | 470,118                    |
+| **CPU%:**                 | 189%                       | 182%                       |
+| **Peak Memory:**          | 171.68 MB                  | 63.80 MB                   |
+
+</details>
 <hr>
 
 ### Sustained Load Memory Stability Test (60 seconds)
@@ -235,59 +294,55 @@ Use this test to:
 
 #### Results of Memory Test
 
-```
-🔬  SILO — Sustained Load Memory Stability Test (Backpressure Enabled)
-    Duration:        60s
-    Sample interval: 2s
-────────────────────────────────────────────────────
-    Time(s) | Heap Used | Delta from Start | LPS (interval)
-────────────────────────────────────────────────────
-    2.0    s |  175.43 MB |         170.66 MB | 461,612
-    4.0    s |  206.57 MB |         201.80 MB | 434,819
-    6.0    s |  235.68 MB |         230.92 MB | 511,038
-    8.0    s |  248.97 MB |         244.21 MB | 507,339
-    10.1   s |  200.25 MB |         195.48 MB | 428,521
-    12.1   s |  235.94 MB |         231.17 MB | 486,364
-    14.1   s |  240.17 MB |         235.40 MB | 462,011
-    16.1   s |  138.82 MB |         134.05 MB | 433,451
-    18.1   s |  171.25 MB |         166.48 MB | 469,823
-    20.2   s |  161.85 MB |         157.08 MB | 443,941
-    22.2   s |  165.01 MB |         160.24 MB | 470,354
-    24.2   s |  186.66 MB |         181.89 MB | 474,814
-    26.2   s |  170.18 MB |         165.42 MB | 446,187
-    28.2   s |  177.55 MB |         172.78 MB | 449,809
-    30.2   s |  153.39 MB |         148.62 MB | 412,073
-    32.2   s |   88.77 MB |          84.00 MB | 400,010
-    34.2   s |  115.03 MB |         110.26 MB | 473,468
-    36.2   s |  146.50 MB |         141.73 MB | 499,741
-    38.2   s |  237.60 MB |         232.84 MB | 560,364
-    40.3   s |  265.14 MB |         260.38 MB | 488,694
-    42.3   s |  230.91 MB |         226.14 MB | 421,690
-    44.3   s |   97.57 MB |          92.80 MB | 486,974
-    46.3   s |  115.53 MB |         110.76 MB | 486,405
-    48.3   s |   98.14 MB |          93.37 MB | 462,291
-    50.3   s |  285.88 MB |         281.11 MB | 424,929
-    52.3   s |  133.11 MB |         128.35 MB | 510,092
-    54.3   s |  186.05 MB |         181.29 MB | 532,532
-    56.3   s |  203.85 MB |         199.08 MB | 499,899
-    58.3   s |  202.86 MB |         198.09 MB | 474,865
-────────────────────────────────────────────────────
+_Note: Initial benchmarks were performed on Windows environments. All current and future testing is conducted within Docker containers (Linux) to better simulate real-world production server performance._
 
-📊  FINAL SUMMARY
-    Total logs written : 28,150,000
-    Total time         : 60.03s
-    Avg LPS            : 468,934
-    Heap at start      : 4.77 MB
-    Heap at end        : 119.20 MB
-    Net heap delta     : 114.44 MB
+<details>
+<summary>1 Minute Memory Test</summary>
 
-📈  MEMORY TREND ANALYSIS
-    Slope              : -34.53 MB/min
-    Verdict            : ✅  STABLE — memory is not growing meaningfully
+|                         | Silo version 1.0.3 | Silo version 1.0.4 |
+| ----------------------- | ------------------ | ------------------ |
+| **Total logs written:** | 23,310,306         | 34,467,474         |
+| **Total time:**         | 60.03 seconds      | 60.03 seconds      |
+| **Avg LPS**             | 388,340            | 574,156            |
+| **Heap at start:**      | 4.55 MB            | 4.63 MB            |
+| **Heap at end:**        | 153.65 MB          | 53.63 MB           |
+| **Net heap delta:**     | 149.10 MB          | 49.01 MB           |
+| **Slope**               | 2.22 MB/min        | 20.34 MB/min       |
+| **Verdict:**            | STABLE             | STABLE             |
 
-────────────────────────────────────────────────────
-```
+</details>
+<br>
+<details>
+<summary>3 Minute Memory Test</summary>
 
+|                         | Silo version 1.0.3 | Silo version 1.0.4 |
+| ----------------------- | ------------------ | ------------------ |
+| **Total logs written:** | 67,425,000         | 93,914,422         |
+| **Total time:**         | 180.07 seconds     | 180.03 seconds     |
+| **Avg LPS**             | 374,444            | 521,652            |
+| **Heap at start:**      | 4.55 MB            | 4.62 MB            |
+| **Heap at end:**        | 58.59 MB           | 85.82 MB           |
+| **Net heap delta:**     | 54.04 MB           | 81.20 MB           |
+| **Slope**               | -5.02 MB/min       | 5.08 MB/min        |
+| **Verdict:**            | STABLE             | STABLE             |
+
+</details>
+<br>
+<details>
+<summary>6 Minute Memory Test</summary>
+
+|                         | Silo version 1.0.3 | Silo version 1.0.4 |
+| ----------------------- | ------------------ | ------------------ |
+| **Total logs written:** | 133,530,830        | 167,372,917        |
+| **Total time:**         | 360.07 seconds     | 360.03 seconds     |
+| **Avg LPS**             | 370,851            | 464,887            |
+| **Heap at start:**      | 4.55 MB            | 4.62 MB            |
+| **Heap at end:**        | 161.41 MB          | 122.23 MB          |
+| **Net heap delta:**     | 156.86 MB          | 117.61 MB          |
+| **Slope**               | -1.81 MB/min       | -0.81 MB/min       |
+| **Verdict:**            | STABLE             | STABLE             |
+
+</details>
 <hr>
 
 ### Multi-Instance Stress Test
@@ -328,34 +383,72 @@ Key Metrics Explained:<br>
 
 - **Event Loop Lag:** A critical health metric; lower is better. It measures the delay in the Node.js execution cycle caused by the logging load. **Note:** The lag reported here is a `"worst-case scenario" metric`; because this test intentionally hammers the event loop to find its breaking point, these numbers reflect extreme stress rather than standard, day-to-day logging behavior.
 
-- **Density:** A "fun" but meaningful stat showing how many millions of logs Silo can process per every 1MB of RAM consumed.
+- **Density:** Measures how many logs Silo processes per MB of RAM consumed. Useful for capacity planning in high-density container environments.
 
 #### The Results of Instance Stress Test:
 
-```
-========================================================================
-   SILO ENGINE MULTI-INSTANCE STRESS TEST: 30 INSTANCES
-========================================================================
-'ulimit' is not recognized as an internal or external command,
-operable program or batch file.
-ℹ️  Could not check ulimit (likely Windows). Ensure stability.
-🚀 Boot Time: 11.563ms
-🔨 Hammering 30 instances with 10000 logs each...
-⏳ Waiting for all file queues to flush to disk...
+_Note: Initial benchmarks were performed on Windows environments. All current and future testing is conducted within Docker containers (Linux) to better simulate real-world production server performance._
+<br>
 
-========================================================================
-   FINAL STRESS REPORT: THE "WINDOWS WALL" EDITION
-========================================================================
-✅ Successful Instances:   30
-📈 Total Logs Written:     300,000
-⏱️  Execution Time:         0.485s
-🚀 Throughput:             618,556 LPS
-🧠 Mem Growth:             +-0.05 MB
-💎 Avg Mem Per Instance:   -0.002 MB
-⚡ Max Event Loop Lag:     281ms
-📊 Density:                -5,539,034 Logs per 1MB RAM
-========================================================================
-```
+_⚠️ Disclaimer: The Instance Stress Test is a deliberate system hammer — it intentionally pushes Node.js, the file system, and the event loop to their breaking point by running multiple aggressive instances simultaneously. The metrics here, especially event loop lag, reflect an extreme pathological scenario and are not representative of Silo's behavior in a normal production environment. Real-world production logging operates at a fraction of this intensity._
+
+<details>
+<summary>The "Standard Load" (3 Instances)</summary>
+
+|                           | Silo version 1.0.3         | Silo version 1.0.4         |
+| ------------------------- | -------------------------- | -------------------------- |
+| **Successful Instances:** | 3                          | 3                          |
+| **Logs per Instance:**    | 1,000,000                  | 1,000,000                  |
+| **Total Logs Written**    | 3,000,000                  | 3,000,000                  |
+| **Boot Time:**            | 2.041 ms                   | 2.57 ms                    |
+| **Execution Time:**       | 4.720 seconds              | 4.054 seconds              |
+| **Throughput:**           | 635,593 LPS                | 740,009 LPS                |
+| **Mem Growth**            | +-0.65 MB                  | +-0.69 MB                  |
+| **Avg Mem Per Instance:** | -0.217 MB                  | -0.229 MB                  |
+| **Max Event Loop Lag**    | 164 ms                     | 156 ms                     |
+| **Density:**              | 4,604,673 logs per 1MB RAM | 4,367,805 Logs per 1MB RAM |
+
+</details>
+<br>
+<details>
+<summary>The "Microservice Mesh" (15 Instances)</summary>
+
+|                           | Silo version 1.0.3          | Silo version 1.0.4          |
+| ------------------------- | --------------------------- | --------------------------- |
+| **Successful Instances:** | 15                          | 15                          |
+| **Logs per Instance:**    | 500,000                     | 500,000                     |
+| **Total Logs Written**    | 7,500,000                   | 7,500,000                   |
+| **Boot Time:**            | 4.653 ms                    | 2.167 ms                    |
+| **Execution Time:**       | 11.032 seconds              | 11.106 seconds              |
+| **Throughput:**           | 679,840 LPS                 | 675,310 LPS                 |
+| **Mem Growth**            | +0.32 MB                    | +-0.51 MB                   |
+| **Avg Mem Per Instance:** | 0.021 MB                    | -0.034 MB                   |
+| **Max Event Loop Lag**    | 935 ms                      | 1102 ms                     |
+| **Density:**              | 23,569,013 Logs per 1MB RAM | 14,809,727 Logs per 1MB RAM |
+
+</details>
+<br>
+<details>
+<summary>The "Hammer Test" (30+ Instances)</summary>
+
+|                           | Silo version 1.0.3          | Silo version 1.0.4          |
+| ------------------------- | --------------------------- | --------------------------- |
+| **Successful Instances:** | 30                          | 30                          |
+| **Logs per Instance:**    | 1,000,000                   | 1,000,000                   |
+| **Total Logs Written**    | 30,000,000                  | 30,000,000                  |
+| **Boot Time:**            | 3.064 ms                    | 4.138 ms                    |
+| **Execution Time:**       | 47.793 seconds              | 46.645 seconds              |
+| **Throughput:**           | 627,706 LPS                 | 642,645 LPS                 |
+| **Mem Growth**            | +-0.38 MB                   | +-0.46 MB                   |
+| **Avg Mem Per Instance:** | -0.013 MB                   | -0.015 MB                   |
+| **Max Event Loop Lag**    | 1863 ms                     | 2890 ms                     |
+| **Density:**              | 78,876,675 Logs per 1MB RAM | 65,597,225 Logs per 1MB RAM |
+
+</details>
+
+_Note: The increased event loop lag in 1.0.4 is a direct result of the more aggressive write throughput — the engine is doing more work per cycle. Under normal production loads this difference is not observable._
+
+<hr>
 
 ## Multi-Instance Usage
 
@@ -434,10 +527,11 @@ process.on("SIGTERM", async () => {
 
 Silo Free is the open-source core engine. The Flowrdesk Silo Series builds on this foundation:
 
-| Product        | Description                                        | Availability   |
-| -------------- | -------------------------------------------------- | -------------- |
-| **Silo Free**  | Core engine — what you're using now                | ✅ Available   |
-| **Silo Basic** | PII scrubbing + automated log lifecycle management | 🔜 Coming Soon |
+| Product         | Description                         | Availability   |
+| --------------- | ----------------------------------- | -------------- |
+| **Silo Free**   | Core engine — what you're using now | ✅ Available   |
+| **Silo Basic**  | Automated log lifecycle management  | 🔜 Coming Soon |
+| **Silo Shield** | PII scrubbing                       | 🔜 Coming Soon |
 
 Learn more at [flowrdesk.com](https://flowrdesk.com)
 
@@ -447,3 +541,30 @@ Learn more at [flowrdesk.com](https://flowrdesk.com)
 
 Apache-2.0 — see [LICENSE](./LICENSE) for full text.
 Copyright 2026 John Spriggs (Flowrdesk LLC) — see [NOTICE](./NOTICE).
+
+<hr>
+
+## Changelog
+
+### 1.0.4
+
+- Improved write throughput — 10.5% LPS increase over 1.0.3
+- Reduced CPU usage — 179% vs 196% at 1B logs
+
+### 1.0.3
+
+- Initial public release
+<hr>
+
+## 🛠️ Testing Environment
+
+To ensure the validity of these benchmarks, all tests were conducted in a containerized environment to isolate resource usage and simulate production-grade deployment.
+
+| Component       | Specification                                  |
+| --------------- | ---------------------------------------------- |
+| **Processor**   | 13th Gen Intel® Core™ i7-1360P (Up to 5.0 GHz) |
+| **Memory**      | 16GB LPDDR5 RAM                                |
+| **Storage**     | NVMe PCIe Gen4 SSD                             |
+| **OS Host**     | Windows 11 Home (64-bit)                       |
+| **Runtime Env** | Runtime Env WSL2 (Ubuntu) / Docker Engine      |
+| **Node.js**     | v22                                            |

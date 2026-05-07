@@ -45,6 +45,13 @@ export const instance_stress = async (targetInstances = 30, loggingEachInstance 
     const instances = [];
     const logsPerInstance = loggingEachInstance;
     
+    console.log('\n\n********** ********** ********** ********** ********** **********')
+    console.log('⚠️  DISCLAIMER: This test deliberately hammers your system with multiple')
+    console.log('concurrent logging instances to find breaking points. Event loop lag')
+    console.log('and memory numbers reflect extreme stress conditions — not typical')
+    console.log('production logging behavior. Do not use these numbers to evaluate')
+    console.log('day-to-day performance.')
+    console.log('********** ********** ********** ********** ********** **********')
     console.log(`\n========================================================================`);
     console.log(`   SILO ENGINE MULTI-INSTANCE STRESS TEST: ${targetInstances} INSTANCES`);
     console.log(`========================================================================`);

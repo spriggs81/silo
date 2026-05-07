@@ -66,11 +66,9 @@ export default class Logs {
         this.checkedFileSize = false
         this.endingWriteStream = false
         this.fileProcessing = false
-        
         this.maxQueueDepth = maxQueueDepth
         this.drainThreshold = Math.floor(maxQueueDepth * 0.5)
         this.fileQueueWaiters = []
-        // ─────────────────────────────────────────────────────
 
         // variables needed to handle flush (benefit for benchmarking)
         this.flushPromise = null
@@ -80,13 +78,16 @@ export default class Logs {
         this.terminalResolveFlush = null
         this.rawTerminalResolveFlush = null
 
+        this.avgFileSize = 180
+        this.watchRate = 0.2
+        this.drainSize = 3_145_728
+
         // holding metadata
         this.hostname = os.hostname()
         this.pid = process.pid
 
         // the start up function that handles all the processes needed when the app starts
         this.initStart()
-        this.count = 0
     }
 
     waitForQueueSpace = () => {
@@ -308,7 +309,13 @@ export default class Logs {
                         : ''
         const verifiedLog = verifyAndFormatLog(userLog)
 
-        this.fileQueue.push(`{${level}${metadata}${verifiedLog}}\n`)
+        const fullLog = `{${level}${metadata}${verifiedLog}}\n`
+
+        const logSize = fullLog.length
+
+        this.avgFileSize = (this.avgFileSize * (1 - this.watchRate)) + (logSize * this.watchRate)
+
+        this.fileQueue.push(fullLog)
 
         if(this.fileQueue.length >= this.maxQueueDepth){
             await this.waitForQueueSpace()
@@ -337,18 +344,18 @@ export default class Logs {
 
         const str = []
         const targetSize = this.maxBufferSizeByKB * .80
-
+        const maxGrab = Math.floor(this.drainSize / this.avgFileSize) || 1
         while(!this.isDraining && !this.isIndexing && !this.endingWriteStream && this.fileQueue.length > 0) {
-            const grab = this.fileQueue.length > 5000 ? 5000 : this.fileQueue.length
+            const grab = this.fileQueue.length > maxGrab ? maxGrab : this.fileQueue.length
             const chunks = this.fileQueue.splice(0, grab)
             str.push(chunks.join(''))
 
-            if(str.join('').length >= targetSize
-                || (this.cachedFileSize + str.join('').length) >= this.maxFileSizeByMB
-                || (this.fileQueue.length === 0 && str.join('').length > 0)) {
-
-                const noBackPressure = this.writeStream.write(str.join(''))
-                this.cachedFileSize += str.join('').length
+            const joined = str.join('')
+            if(joined.length >= targetSize
+                || (this.cachedFileSize + joined.length) >= this.maxFileSizeByMB
+                || (this.fileQueue.length === 0 && joined.length > 0)) {
+                const noBackPressure = this.writeStream.write(joined)
+                this.cachedFileSize += joined.length
 
                 if(noBackPressure === false) {
                     this.isDraining = true
